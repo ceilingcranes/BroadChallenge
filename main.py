@@ -157,15 +157,6 @@ def get_routes_per_stop(routes_to_stops):
     return stops_to_routes
 
 
-def get_routes(stop_id, session):
-    """
-    Given the stop ID or multiple stop IDs seperated by commas, return all the routes that service that stop in JSON
-    format.
-    :param stop_id:
-    :param session:
-    :return:
-    """
-
 def print_stops_data(stops_data, route_data, stops_to_routes, routes_to_stops):
     """
     Print out the route with the most stops, the route with the least, and all the stops that connect 2 or more routes.
@@ -186,6 +177,58 @@ def print_stops_data(stops_data, route_data, stops_to_routes, routes_to_stops):
     print("Route with most stops: ", route_data[most_route]['attributes']['long_name'])
     print("Route with least stops: ", route_data[least_route]['attributes']['long_name'])
 
+    print("====Stops that connect 2 or more Routes====")
+    # To print out all stops that connect 2 or more routes
+    for stop in stops_to_routes.keys():
+        if len(stops_to_routes[stop]) > 1:
+            # Fancy way to access the long names for all the routes within stops_to_routes[stop]
+            print("{}: {}".format(stops_data[stop]['attributes']['name'],
+                ", ".join([route_data[route_id]['attributes']['long_name'] for route_id in stops_to_routes[stop]])))
+    print("====End of Print====")
+
+
+def find_path(start_stop, end_stop, stop_to_routes, route_to_stops):
+    print(stop_to_routes)
+    if start_stop == end_stop:
+        return []
+
+    queue = stop_to_routes[start_stop][:] # End colon to copy instead of pass by reference
+    end_routes = stop_to_routes[end_stop] # All the routes that connect to the end stop
+    # Checked routes maintains a list of routes that are already in the queue to keep from infinite loops
+    checked_routes = stop_to_routes[start_stop][:]
+    # Route connections keeps track of where the routes came on from - so basically, if the step entails switching
+    # from route 1 to route 2, this dict will store Route2ID : Route1ID so you can trace backwards and get the full trip.
+    route_connections = dict()
+
+    while(len(queue) > 0):
+        print("Queue: ", queue)
+        print("Route Connections: ",route_connections)
+        print("Checked : ", checked_routes)
+        print("--------")
+        check_route = queue.pop(0)
+        if check_route in end_routes:
+            # The route connects to the end stop, so end here and return the end list.
+            return find_connections(route_connections, check_route)
+
+        possible_stops = route_to_stops[check_route]
+        for stop in possible_stops:
+            for route in stop_to_routes[stop]:
+                if route not in checked_routes:
+                    queue.append(route)
+                    checked_routes.append(route)
+                    route_connections[route] = check_route
+
+
+def find_connections(route_connections, end_route):
+
+    connections = [end_route]
+    prev_r = end_route
+    while prev_r in route_connections:
+        prev_r = route_connections[prev_r]
+        connections = [prev_r] + connections
+
+
+    return connections
 
 
 if __name__ == "__main__":
@@ -234,5 +277,3 @@ if __name__ == "__main__":
     # json = r.json()
     # print(json['data'])
     # print(json['data']['attributes'])
-
-    
