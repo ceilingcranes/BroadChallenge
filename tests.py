@@ -82,6 +82,5 @@ class TestMBTA(unittest.TestCase):
         self.assertListEqual(test_connect, ["R2", "R3", "R4"])
 
 
-
 if __name__ == "__main__":
     unittest.main()
